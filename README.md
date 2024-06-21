@@ -1,4 +1,4 @@
-# ETH-AVAX-2
+# ETH-AVAX-3
 
 This contract is written on Solidity and has very basic functionalities related to the creation of Reward Token.
 
