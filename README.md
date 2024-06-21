@@ -17,54 +17,62 @@ Once you are on the Remix website, create a new file by clicking on the "+" icon
 
 ```javascript
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/ERC20.sol)
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
-import ".deps/npm/@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import ".deps/npm/@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CarbonCreditToken is ERC20, Ownable {
-    // Mapping to store authorized minters
-    mapping(address => bool) public authorizedMinters;
+contract RewardToken is ERC20, Ownable {
 
-    constructor(string memory name, string memory symbol, address initialOwner) ERC20(name, symbol) Ownable(initialOwner) {}
+    event ApprovalLog(address indexed owner, address indexed spender, uint256 value, string message);
 
-    // Modifier to restrict function access to authorized minters only
-    modifier onlyAuthorizedMinter() {
-        require(authorizedMinters[msg.sender], "Not an authorized minter");
-        _;
+    struct Lock {
+        uint256 amount;
+        uint256 unlockTime;
     }
 
-    // Function to authorize a new minter
-    function authorizeMinter(address minter) public onlyOwner {
-        authorizedMinters[minter] = true;
+    mapping(address => Lock) private _locks;
+
+    constructor() ERC20("RewardToken", "RTK") Ownable(msg.sender) {
+        _mint(msg.sender, 1000); 
     }
 
-    // Function to revoke a minter's authorization
-    function revokeMinter(address minter) public onlyOwner {
-        authorizedMinters[minter] = false;
-    }
-
-    // Mint function restricted to authorized minters
-    function mint(address to, uint256 amount) public onlyAuthorizedMinter {
+    function AddReward(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
 
-    // Burn function to allow any user to destroy their tokens
-    function burn(uint256 amount) public {
+    function UseReward(uint256 amount) public {
         _burn(msg.sender, amount);
     }
 
-    // Override _update to add audit trail
-    function _update(address from, address to, uint256 amount) internal virtual override {
-        super._update(from, to, amount);
-        // Emit a detailed transfer event for audit purposes
-        emit TransferDetails(from, to, amount, block.timestamp);
+    function approve(address spender, uint256 amount) public override returns (bool) {
+        emit ApprovalLog(msg.sender, spender, amount, "Approval has been granted.");
+        return super.approve(spender, amount);
     }
 
-    // Event to log transfer details
-    event TransferDetails(address indexed from, address indexed to, uint256 value, uint256 timestamp);
+    function lockTokens(uint256 amount, uint256 time) public {
+        require(balanceOf(msg.sender) >= amount, "ERC20: insufficient balance");
+        require(_locks[msg.sender].amount == 0, "ERC20: tokens already locked");
+
+        _locks[msg.sender] = Lock(amount, block.timestamp + time);
+        _burn(msg.sender, amount);
+    }
+
+    function unlockTokens() public {
+        require(_locks[msg.sender].amount > 0, "ERC20: no tokens locked");
+        require(block.timestamp >= _locks[msg.sender].unlockTime, "ERC20: tokens are still locked");
+
+        uint256 amount = _locks[msg.sender].amount;
+        _locks[msg.sender].amount = 0;
+        _mint(msg.sender, amount);
+    }
+
+    function getLockDetails(address _address) public view returns (uint256 amount, uint256 unlockTime) {
+        Lock storage lock = _locks[_address];
+        return (lock.amount, lock.unlockTime);
+    }
 }
+
 
 ```
 
@@ -72,7 +80,7 @@ To compile the code, click on the "Solidity Compiler" tab in the left-hand sideb
 
 Once the code is compiled, you can deploy the contract by clicking on the "Deploy & Run Transactions" tab in the left-hand sidebar. Select the "RewardToken" contract from the dropdown menu, and then click on the "Deploy" button.
 
-The smart contract is deployed with the particular address being its owner which gives it the right to mint tokens but burn and transfer of the tokens can be done by different addresses which receive those tokens.The minting is done for particular addresses as there reward which can be burned by those addresses.
+The smart contract is deployed with the particular address being its owner which gives it the right to mint tokens but burn and transfer of the tokens can be done by different addresses which receive those tokens.The minting is done for particular addresses as there reward which can be burned by those addresses.Locking and Unlocking tokens of the ownwer can also be done.
 ## Authors
 
 Samyak Jain
