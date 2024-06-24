@@ -30,7 +30,7 @@ contract RewardToken is ERC20, Ownable {
         uint256 amount;
         uint256 unlockTime;
     }
-
+    
     mapping(address => Lock) private _locks;
 
     constructor() ERC20("RewardToken", "RTK") Ownable(msg.sender) {
@@ -41,8 +41,13 @@ contract RewardToken is ERC20, Ownable {
         _mint(to, amount);
     }
 
-    function UseReward(uint256 amount) public {
-        _burn(msg.sender, amount);
+    function UseReward(address from,uint256 amount) public {
+        _burn(from, amount);
+    }
+
+    // Added the transfer function
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        return super.transfer(recipient, amount);
     }
 
     function approve(address spender, uint256 amount) public override returns (bool) {
